@@ -1,11 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import connectToDatabase from './config/db';
 import { APP_ORIGIN, PORT } from './constants/env';
-
-dotenv.config();
+import errorHandler from './middleware/errorHandler';
 
 const app = express();
 
@@ -18,6 +17,7 @@ app.use(
   })
 );
 app.use(cookieParser());
+app.use(errorHandler);
 
 const startServer = async () => {
   await connectToDatabase();
