@@ -1,6 +1,8 @@
 import { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 import { NODE_ENV } from '../constants/env';
-import { HTTP_STATUS } from '../constants/httpStatusCodes';
+import AppError from '../utils/AppError';
+import HttpStatusCode from '../constants/httpStatusCode';
 
 const errorHandler: ErrorRequestHandler = (
   err: Error,
@@ -12,13 +14,21 @@ const errorHandler: ErrorRequestHandler = (
     return next(err);
   }
 
-  const statusCode =
-    res.statusCode === HTTP_STATUS.OK
-      ? HTTP_STATUS.INTERNAL_SERVER_ERROR
-      : res.statusCode;
-  res.status(statusCode);
+  if (err instanceof ZodError) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      message: 'Validation Error',
+      errors: err.errors,
+    });
+  }
 
-  res.json({
+  if (err instanceof AppError) {
+    return res.status(err.statusCode).json({
+      message: err.message,
+      errorCode: err.errorCode,
+    });
+  }
+
+  return res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
     message: err.message,
     stack: NODE_ENV === 'production' ? '🥞' : err.stack,
   });

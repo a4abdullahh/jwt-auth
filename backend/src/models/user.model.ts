@@ -8,6 +8,7 @@ export interface UserDocument extends mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (candidatePassword: string) => Promise<boolean>;
+  omitPassword: () => Omit<this, 'password'>;
 }
 
 const userSchema = new mongoose.Schema<UserDocument>(
@@ -48,6 +49,12 @@ userSchema.methods.comparePassword = async function (
 ): Promise<boolean> {
   const user = this as UserDocument;
   return comparePassword(candidatePassword, user.password);
+};
+
+userSchema.methods.omitPassword = function () {
+  const user = this.toObject();
+  delete user.password;
+  return user;
 };
 
 const UserModel = mongoose.model<UserDocument>('User', userSchema);

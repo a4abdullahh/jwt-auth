@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import connectToDatabase from './config/db';
 import { APP_ORIGIN, PORT } from './constants/env';
 import errorHandler from './middleware/errorHandler';
+import authRoutes from './routes/auth.route';
 
 const app = express();
 
@@ -17,6 +18,9 @@ app.use(
   })
 );
 app.use(cookieParser());
+
+app.use('/auth', authRoutes);
+
 app.use(errorHandler);
 
 const startServer = async () => {
