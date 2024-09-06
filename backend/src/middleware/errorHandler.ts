@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { NODE_ENV } from '../constants/env';
 import AppError from '../utils/AppError';
 import HttpStatusCode from '../constants/httpStatusCode';
+import { clearAuthCookies, REFRESH_PATH } from '../utils/cookies';
 
 const errorHandler: ErrorRequestHandler = (
   err: Error,
@@ -12,6 +13,11 @@ const errorHandler: ErrorRequestHandler = (
 ) => {
   if (res.headersSent) {
     return next(err);
+  }
+
+  console.log(req.path);
+  if (req.path === REFRESH_PATH) {
+    clearAuthCookies(res);
   }
 
   if (err instanceof ZodError) {

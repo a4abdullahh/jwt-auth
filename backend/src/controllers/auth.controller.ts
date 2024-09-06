@@ -1,10 +1,20 @@
 import HttpStatusCode from '../constants/httpStatusCode';
 import asyncHandler from '../utils/asyncHandler';
 import { loginSchema, registerSchema } from '../schemas/auth.schema';
-import { createAccount, loginUser } from '../services/auth.service';
-import { clearAuthCookies, setAuthCookies } from '../utils/cookies';
+import {
+  createAccount,
+  loginUser,
+  refreshAccessToken,
+} from '../services/auth.service';
+import {
+  clearAuthCookies,
+  getAccessTokenCookieOptions,
+  getRefreshTokenCookieOptions,
+  setAuthCookies,
+} from '../utils/cookies';
 import { verifyToken } from '../utils/jwt';
 import SessionModel from '../models/session.model';
+import appAssert from '../utils/appAssert';
 
 export const registerHandler = asyncHandler(async (req, res) => {
   const body = registerSchema.parse({
@@ -35,8 +45,8 @@ export const loginHandler = asyncHandler(async (req, res) => {
 });
 
 export const logoutHandler = asyncHandler(async (req, res) => {
-  const accessToken = req.cookies.accessToken;
-  const { payload } = verifyToken(accessToken);
+  const accessToken = req.cookies.accessToken as string | undefined;
+  const { payload } = verifyToken(accessToken || '');
 
   if (payload) {
     await SessionModel.findByIdAndDelete(payload.sessionId);
@@ -45,4 +55,24 @@ export const logoutHandler = asyncHandler(async (req, res) => {
   return clearAuthCookies(res).status(HttpStatusCode.OK).json({
     message: 'Logout successful',
   });
+});
+
+export const refreshHandler = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken as string | undefined;
+  appAssert(refreshToken, HttpStatusCode.UNAUTHORIZED, 'Missing refresh token');
+
+  const { accessToken, newRefreshToken } = await refreshAccessToken(
+    refreshToken
+  );
+
+  if (newRefreshToken) {
+    res.cookie('refreshToken', newRefreshToken, getRefreshTokenCookieOptions());
+  }
+
+  return res
+    .status(HttpStatusCode.OK)
+    .cookie('accessToken', accessToken, getAccessTokenCookieOptions())
+    .json({
+      message: 'Access token refreshed',
+    });
 });

@@ -5,7 +5,12 @@ import VerificationCodeType from '../constants/verificationCodeType';
 import appAssert from '../utils/appAssert';
 import HttpStatusCode from '../constants/httpStatusCode';
 import { addDays } from '../utils/date';
-import { signToken } from '../utils/jwt';
+import {
+  RefreshTokenPayload,
+  refreshTokenSignOptions,
+  signToken,
+  verifyToken,
+} from '../utils/jwt';
 
 export type AuthParams = {
   email: string;
@@ -80,5 +85,44 @@ export const loginUser = async ({ email, password, userAgent }: AuthParams) => {
     user: user.omitPassword(),
     accessToken,
     refreshToken,
+  };
+};
+
+export const refreshAccessToken = async (refreshToken: string) => {
+  const { payload } = verifyToken<RefreshTokenPayload>(refreshToken, {
+    secret: refreshTokenSignOptions.secret,
+  });
+  appAssert(payload, HttpStatusCode.UNAUTHORIZED, 'Invalid refresh token');
+
+  const session = await SessionModel.findById(payload.sessionId);
+  const now = Date.now();
+  appAssert(
+    session && session.expiresAt.getTime() > now,
+    HttpStatusCode.UNAUTHORIZED,
+    'Session expired'
+  );
+
+  const sessionNeedsRefresh =
+    session.expiresAt.getTime() - now <= addDays(1).getTime();
+  if (sessionNeedsRefresh) {
+    session.expiresAt = addDays(7);
+    await session.save();
+  }
+
+  const accessToken = signToken({
+    payload: { userId: session.userId, sessionId: session._id },
+    type: 'access',
+  });
+
+  const newRefreshToken = sessionNeedsRefresh
+    ? signToken({
+        payload: { sessionId: session._id },
+        type: 'refresh',
+      })
+    : undefined;
+
+  return {
+    accessToken,
+    newRefreshToken,
   };
 };

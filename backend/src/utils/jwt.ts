@@ -4,12 +4,12 @@ import { SessionDocument } from '../models/session.model';
 import { JWT_REFRESH_SECRET, JWT_SECRET } from '../constants/env';
 import { error } from 'console';
 
-type AccessTokenPayload = {
+export type AccessTokenPayload = {
   userId: UserDocument['_id'];
   sessionId: SessionDocument['_id'];
 };
 
-type RefreshTokenPayload = {
+export type RefreshTokenPayload = {
   sessionId: SessionDocument['_id'];
 };
 
@@ -27,12 +27,12 @@ const defaultSignOptions: SignOptions = {
   audience: ['user'],
 };
 
-const accessTokenSignOptions: SignOptionsWithSecret = {
+export const accessTokenSignOptions: SignOptionsWithSecret = {
   expiresIn: '15m',
   secret: JWT_SECRET,
 };
 
-const refreshTokenSignOptions: SignOptionsWithSecret = {
+export const refreshTokenSignOptions: SignOptionsWithSecret = {
   expiresIn: '7d',
   secret: JWT_REFRESH_SECRET,
 };
