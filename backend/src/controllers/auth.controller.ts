@@ -1,10 +1,15 @@
 import HttpStatusCode from '../constants/httpStatusCode';
 import asyncHandler from '../utils/asyncHandler';
-import { loginSchema, registerSchema } from '../schemas/auth.schema';
+import {
+  loginSchema,
+  registerSchema,
+  verificationCodeSchema,
+} from '../schemas/auth.schema';
 import {
   createAccount,
   loginUser,
   refreshAccessToken,
+  verifyEmail,
 } from '../services/auth.service';
 import {
   clearAuthCookies,
@@ -75,4 +80,14 @@ export const refreshHandler = asyncHandler(async (req, res) => {
     .json({
       message: 'Access token refreshed',
     });
+});
+
+export const verifyEmailHandler = asyncHandler(async (req, res) => {
+  const verificationCode = verificationCodeSchema.parse(req.params.code);
+
+  await verifyEmail(verificationCode);
+
+  return res.status(HttpStatusCode.OK).json({
+    message: 'Email verified',
+  });
 });

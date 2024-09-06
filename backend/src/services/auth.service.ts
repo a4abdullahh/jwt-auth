@@ -11,6 +11,10 @@ import {
   signToken,
   verifyToken,
 } from '../utils/jwt';
+import mongoose from 'mongoose';
+import { sendMail } from '../utils/sendMail';
+import { getEmailTemplate } from '../utils/emailTemplates';
+import { APP_ORIGIN } from '../constants/env';
 
 export type AuthParams = {
   email: string;
@@ -35,6 +39,13 @@ export const createAccount = async ({
     userId: user._id,
     type: VerificationCodeType.EmailVerification,
     expiresAt: addDays(365),
+  });
+
+  const url = `${APP_ORIGIN}/email/verify/${verificationCode._id}`;
+
+  await sendMail({
+    to: user.email,
+    ...getEmailTemplate(url),
   });
 
   const session = await SessionModel.create({
@@ -124,5 +135,35 @@ export const refreshAccessToken = async (refreshToken: string) => {
   return {
     accessToken,
     newRefreshToken,
+  };
+};
+
+export const verifyEmail = async (code: mongoose.Types.ObjectId) => {
+  const validCode = await VerificationCodeModel.findOne({
+    _id: code,
+    type: VerificationCodeType.EmailVerification,
+    expiresAt: { $gt: new Date() },
+  });
+  appAssert(
+    validCode,
+    HttpStatusCode.NOT_FOUND,
+    'Invalid or expired verification code'
+  );
+
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    validCode.userId,
+    { verified: true },
+    { new: true }
+  );
+  appAssert(
+    updatedUser,
+    HttpStatusCode.INTERNAL_SERVER_ERROR,
+    'Failed to verify email'
+  );
+
+  await validCode.deleteOne();
+
+  return {
+    user: updatedUser.omitPassword(),
   };
 };

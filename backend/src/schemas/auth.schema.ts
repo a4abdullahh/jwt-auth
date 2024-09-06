@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { z } from 'zod';
 
 const baseSchema = z.object({
@@ -16,3 +17,5 @@ export const registerSchema = baseSchema.refine(
     path: ['confirmPassword'],
   }
 );
+
+export const verificationCodeSchema = z.custom<mongoose.Types.ObjectId>();
