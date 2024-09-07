@@ -15,7 +15,6 @@ const errorHandler: ErrorRequestHandler = (
     return next(err);
   }
 
-  console.log(req.path);
   if (req.path === REFRESH_PATH) {
     clearAuthCookies(res);
   }

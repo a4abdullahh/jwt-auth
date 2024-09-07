@@ -1,14 +1,18 @@
 import HttpStatusCode from '../constants/httpStatusCode';
 import asyncHandler from '../utils/asyncHandler';
 import {
+  emailSchema,
   loginSchema,
   registerSchema,
+  resetPasswordSchema,
   verificationCodeSchema,
 } from '../schemas/auth.schema';
 import {
   createAccount,
   loginUser,
   refreshAccessToken,
+  resetUserPassword,
+  sendPasswordResetEmail,
   verifyEmail,
 } from '../services/auth.service';
 import {
@@ -89,5 +93,25 @@ export const verifyEmailHandler = asyncHandler(async (req, res) => {
 
   return res.status(HttpStatusCode.OK).json({
     message: 'Email verified',
+  });
+});
+
+export const forgotPasswordHandler = asyncHandler(async (req, res) => {
+  const email = emailSchema.parse(req.body.email);
+
+  await sendPasswordResetEmail(email);
+
+  return res.status(HttpStatusCode.OK).json({
+    message: 'Email sent',
+  });
+});
+
+export const resetPasswordHandler = asyncHandler(async (req, res) => {
+  const { verificationCode, password } = resetPasswordSchema.parse(req.body);
+
+  await resetUserPassword(verificationCode, password);
+
+  return clearAuthCookies(res).status(HttpStatusCode.OK).json({
+    message: 'Password reset successfully',
   });
 });

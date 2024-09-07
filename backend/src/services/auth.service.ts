@@ -4,7 +4,7 @@ import VerificationCodeModel from '../models/verificationCode.model';
 import VerificationCodeType from '../constants/verificationCodeType';
 import appAssert from '../utils/appAssert';
 import HttpStatusCode from '../constants/httpStatusCode';
-import { addDays } from '../utils/date';
+import { addDays, subtractMinutes } from '../utils/date';
 import {
   RefreshTokenPayload,
   refreshTokenSignOptions,
@@ -13,8 +13,13 @@ import {
 } from '../utils/jwt';
 import mongoose from 'mongoose';
 import { sendMail } from '../utils/sendMail';
-import { getEmailTemplate } from '../utils/emailTemplates';
+import {
+  getVerifyEmailTemplate,
+  getPasswordResetEmailTemplate,
+} from '../utils/emailTemplates';
 import { APP_ORIGIN } from '../constants/env';
+import { hashPassword } from '../utils/bcrypt';
+import { userInfo } from 'os';
 
 export type AuthParams = {
   email: string;
@@ -45,7 +50,7 @@ export const createAccount = async ({
 
   await sendMail({
     to: user.email,
-    ...getEmailTemplate(url),
+    ...getVerifyEmailTemplate(url),
   });
 
   const session = await SessionModel.create({
@@ -162,6 +167,85 @@ export const verifyEmail = async (code: mongoose.Types.ObjectId) => {
   );
 
   await validCode.deleteOne();
+
+  return {
+    user: updatedUser.omitPassword(),
+  };
+};
+
+export const sendPasswordResetEmail = async (email: string) => {
+  const user = await UserModel.findOne({ email });
+  appAssert(user, HttpStatusCode.NOT_FOUND, 'User not found');
+
+  const count = await VerificationCodeModel.countDocuments({
+    userId: user.id,
+    type: VerificationCodeType.PasswordReset,
+    createdAt: subtractMinutes(5),
+  });
+  appAssert(
+    count <= 1,
+    HttpStatusCode.TOO_MANY_REQUESTS,
+    'Too many requests, please try again later'
+  );
+
+  const expiresAt = addDays(1);
+  const verificationCode = await VerificationCodeModel.create({
+    userId: user._id,
+    type: VerificationCodeType.PasswordReset,
+    expiresAt,
+  });
+
+  const url = `${APP_ORIGIN}/password/reset?code=${
+    verificationCode._id
+  }&exp=${expiresAt.getTime()}`;
+
+  const { data, error } = await sendMail({
+    to: user.email,
+    ...getPasswordResetEmailTemplate(url),
+  });
+  appAssert(
+    data?.id,
+    HttpStatusCode.INTERNAL_SERVER_ERROR,
+    `${error?.message}`
+  );
+
+  return {
+    url,
+    emailId: data.id,
+  };
+};
+
+export const resetUserPassword = async (
+  verificationCode: mongoose.Types.ObjectId,
+  password: string
+) => {
+  const validCode = await VerificationCodeModel.findOne({
+    _id: verificationCode,
+    type: VerificationCodeType.PasswordReset,
+    expiresAt: { $gt: new Date() },
+  });
+  appAssert(
+    validCode,
+    HttpStatusCode.NOT_FOUND,
+    'Invalid or expired verification code'
+  );
+
+  const updatedUser = await UserModel.findByIdAndUpdate(
+    validCode.userId,
+    { password: await hashPassword(password) },
+    { new: true }
+  );
+  appAssert(
+    updatedUser,
+    HttpStatusCode.INTERNAL_SERVER_ERROR,
+    'Failed to reset password'
+  );
+
+  await validCode.deleteOne();
+
+  await SessionModel.deleteMany({
+    userId: updatedUser._id,
+  });
 
   return {
     user: updatedUser.omitPassword(),

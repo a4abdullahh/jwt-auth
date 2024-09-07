@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 import { z } from 'zod';
 
+export const emailSchema = z.string().email();
+
+export const passwordSchema = z.string().min(6).max(255);
+
 const baseSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6).max(255),
-  confirmPassword: z.string().min(6).max(255),
+  email: emailSchema,
+  password: passwordSchema,
+  confirmPassword: passwordSchema,
   userAgent: z.string().optional(),
 });
 
@@ -19,3 +23,8 @@ export const registerSchema = baseSchema.refine(
 );
 
 export const verificationCodeSchema = z.custom<mongoose.Types.ObjectId>();
+
+export const resetPasswordSchema = z.object({
+  verificationCode: verificationCodeSchema,
+  password: passwordSchema,
+});
