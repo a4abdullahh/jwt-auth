@@ -8,6 +8,7 @@ import userRoutes from './routes/user.route';
 import authenticate from './middleware/authenticate';
 import errorHandler from './middleware/errorHandler';
 import { APP_ORIGIN, PORT } from './constants/env';
+import sessionsRoutes from './routes/session.route';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(cookieParser());
 
 app.use('/auth', authRoutes);
 app.use('/user', authenticate, userRoutes);
+app.use('/sessions', authenticate, sessionsRoutes);
 
 app.use(errorHandler);
 

@@ -22,9 +22,9 @@ export const registerSchema = baseSchema.refine(
   }
 );
 
-export const verificationCodeSchema = z.custom<mongoose.Types.ObjectId>();
+export const objectIdSchema = z.custom<mongoose.Types.ObjectId>();
 
 export const resetPasswordSchema = z.object({
-  verificationCode: verificationCodeSchema,
+  verificationCode: objectIdSchema,
   password: passwordSchema,
 });
