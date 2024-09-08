@@ -1,8 +1,7 @@
 import jwt, { SignOptions, VerifyOptions } from 'jsonwebtoken';
+import { JWT_REFRESH_SECRET, JWT_SECRET } from '../constants/env';
 import { UserDocument } from '../models/user.model';
 import { SessionDocument } from '../models/session.model';
-import { JWT_REFRESH_SECRET, JWT_SECRET } from '../constants/env';
-import { error } from 'console';
 
 export type AccessTokenPayload = {
   userId: UserDocument['_id'];

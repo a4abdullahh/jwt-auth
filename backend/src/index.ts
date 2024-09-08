@@ -3,9 +3,11 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import connectToDatabase from './config/db';
-import { APP_ORIGIN, PORT } from './constants/env';
-import errorHandler from './middleware/errorHandler';
 import authRoutes from './routes/auth.route';
+import userRoutes from './routes/user.route';
+import authenticate from './middleware/authenticate';
+import errorHandler from './middleware/errorHandler';
+import { APP_ORIGIN, PORT } from './constants/env';
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(
 app.use(cookieParser());
 
 app.use('/auth', authRoutes);
+app.use('/user', authenticate, userRoutes);
 
 app.use(errorHandler);
 
