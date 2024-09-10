@@ -5,7 +5,7 @@ import {
   loginSchema,
   registerSchema,
   resetPasswordSchema,
-  verificationCodeSchema,
+  objectIdSchema,
 } from '../schemas/auth.schema';
 import {
   createAccount,
@@ -87,7 +87,7 @@ export const refreshHandler = asyncHandler(async (req, res) => {
 });
 
 export const verifyEmailHandler = asyncHandler(async (req, res) => {
-  const verificationCode = verificationCodeSchema.parse(req.params.code);
+  const verificationCode = objectIdSchema.parse(req.params.code);
 
   await verifyEmail(verificationCode);
 
